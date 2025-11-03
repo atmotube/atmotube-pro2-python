@@ -1,15 +1,16 @@
-# Atmotube PRO2 Python Tool
+# Atmotube PRO 2 Python Tool
 
-A lightweight Python utility for communicating with and managing Atmotube PRO2 devices via USB using the [mcumgr](https://github.com/vouch-opensource/mcumgr-client/) and [Atmotube PRO 2 API](https://support.atmotube.com/en/articles/12714501-atmotube-pro-2-api-documentation).
+A lightweight Python utility for communicating with and managing Atmotube PRO 2 devices via USB using the [mcumgr](https://github.com/vouch-opensource/mcumgr-client/) and [Atmotube PRO 2 API](https://support.atmotube.com/en/articles/12714501-atmotube-pro-2-api-documentation).
 
 ---
 
 ## Features
 
-- Connect to Atmotube PRO2 over BLE  
+- Connect to Atmotube PRO 2 over USB
 - Send mcumgr commands
 - Log and parse device responses
 - Cross-platform support (macOS, Linux, Windows)
+- Atmotube PRO 2 is using [SMP protocol](https://docs.zephyrproject.org/latest/services/device_mgmt/smp_protocol.html)
 
 ---
 
