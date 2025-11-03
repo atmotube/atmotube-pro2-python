@@ -1,0 +1,29 @@
+{
+   "pm":{
+      "mode":"15_min",
+      "charging_mode":"off",
+      "limit":1000
+   },
+   "history":{
+      "mode":"default"
+   },
+   "gps":{
+      "mode":"timer",
+      "timer":10
+   },
+   "interval":{
+      "seconds":60,
+      "mode":"average"
+   },
+   "button":{
+      "mode":"aqs",
+      "pm_mode":"on"
+   },
+   "voc":{
+      "mode":"always_on"
+   },
+   "calibration":{
+      "t":0.0,
+      "h":0
+   }
+}
