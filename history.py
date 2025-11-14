@@ -42,6 +42,18 @@ FIELDS_MAPPING = {
 }
 
 
+def check_fw_new(demanded: tuple[int, int, int], fw: str | None) -> bool:
+    is_new = False
+    if fw:
+        main_part = fw.split("-", maxsplit=1)[0]
+        components = main_part.split(".")
+        fw_major = int(components[0]) if len(components) > 0 else 0
+        fw_minor = int(components[1]) if len(components) > 1 else 0
+        fw_patch = int(components[2]) if len(components) > 2 else 0
+        is_new = (fw_major, fw_minor, fw_patch) >= demanded
+    return is_new
+
+
 def compute_crc8_maxim(data: bytes) -> int:
     crc = 0x00
     for byte in data:
@@ -63,7 +75,7 @@ def round_voc(value):
         return round(value, 1)
 
 
-def read_history_file(path: str):
+def read_history_file(path: str, is_new_pm_format: bool):
     with open(path, "rb") as f:
         raw = f.read()
 
@@ -71,7 +83,7 @@ def read_history_file(path: str):
     offset = 0
     while offset < len(raw):
         try:
-            record = parse_history_record(raw[offset:])
+            record = parse_history_record(raw[offset:], is_new_pm_format)
             records.append(record)
             offset += record["_total_length"]
         except Exception as e:
@@ -89,8 +101,20 @@ PM_EXT_BIT = 0b00001000
 GPS_BIT = 0b00010000
 GPS_EXT_BIT = 0b00100000
 
+PM_ENCODING_FLAG = 0x8000
+PM_ENCODING_VALUE_MASK = 0x7FFF
 
-def parse_history_record(data: bytes) -> dict:
+
+def decode_pm_value(raw: int) -> float:
+    if (raw & PM_ENCODING_FLAG) != 0:
+        # Bit 15 set → integer format
+        return float(raw & PM_ENCODING_VALUE_MASK)
+    else:
+        # Bit 15 clear → 0.1-precision format
+        return float(raw) / 10.0
+
+
+def parse_history_record(data: bytes, is_new_pm_format: bool = False) -> dict:
     if len(data) < 18:
         raise ValueError("Data too short to contain required fields")
 
@@ -156,11 +180,18 @@ def parse_history_record(data: bytes) -> dict:
         pm_fmt = "<HHH"
         pm1, pm25, pm10 = struct.unpack_from(pm_fmt, data, offset)
         offset += struct.calcsize(pm_fmt)
-        record.update({
-            "pm1_ug_m3": pm1 / 10.0,
-            "pm25_ug_m3": pm25 / 10.0,
-            "pm10_ug_m3": pm10 / 10.0
-        })
+        if is_new_pm_format:
+            record.update({
+                "pm1_ug_m3": decode_pm_value(pm1),
+                "pm25_ug_m3": decode_pm_value(pm25),
+                "pm10_ug_m3": decode_pm_value(pm10)
+            })
+        else:
+            record.update({
+                "pm1_ug_m3": pm1 / 10.0,
+                "pm25_ug_m3": pm25 / 10.0,
+                "pm10_ug_m3": pm10 / 10.0
+            })
 
     if packet_type & GPS_BIT:
         gps_fmt = "<ii"

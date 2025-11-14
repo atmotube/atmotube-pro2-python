@@ -46,7 +46,7 @@ class AtmocubeCommandTests(unittest.TestCase):
                 self.assertEqual(response, "err", msg=f"Unexpected response: {raw}")
 
     def test_pm_limit(self):
-        for val in [1000, 30000, 65500]:
+        for val in [1000, 30000, 32765]:
             response, error, raw = run_mcumgr_shell_command(device_path, f"pm limit", [f"{val}"])
             self.assertEqual(response, "ok", msg=f"Unexpected response: {raw}")
 

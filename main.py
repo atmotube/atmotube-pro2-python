@@ -7,7 +7,7 @@ import test
 from test import AtmocubeCommandTests
 from csv_export import export_records_to_csv
 from device_config import print_device_config
-from history import read_history_file, parse_history_record
+from history import read_history_file, parse_history_record, check_fw_new
 from mcumgr_wrapper import run_mcumgr_shell_command, run_mcumgr_download_command, \
     run_mcumgr_image_list_command, run_mcumgr_image_upload_command, run_mcumgr_image_confirm_command, \
     run_mcumgr_reset_command
@@ -210,9 +210,11 @@ def interactive_command_menu(device: str):
         print("9) Run test")
         print("0) Exit")
         choice = input("Enter command: ")
+        fw = FWS.get(device, "N/A")
+        is_new_pm_format = check_fw_new((3, 0, 17), fw)
         if choice == "1":
             print("Downloading history...")
-            download_history(device)
+            download_history(device, fw)
         elif choice == "2":
             print("Fetching current data...")
             data, stderr, raw = run_mcumgr_shell_command(device, "data get")
@@ -221,7 +223,7 @@ def interactive_command_menu(device: str):
             else:
                 if data:
                     decoded_data = base64.b64decode(data)
-                    record = parse_history_record(decoded_data)
+                    record = parse_history_record(decoded_data, is_new_pm_format)
                     print(record)
                 else:
                     print("No data found.")
@@ -234,7 +236,7 @@ def interactive_command_menu(device: str):
                 if data:
                     try:
                         decoded_data = base64.b64decode(data)
-                        record = parse_history_record(decoded_data)
+                        record = parse_history_record(decoded_data, is_new_pm_format)
                         print(record)
                     except:
                         print("No data found.")
@@ -326,7 +328,7 @@ def interactive_command_menu(device: str):
             print("Invalid choice. Try again.")
 
 
-def download_history(device: str):
+def download_history(device: str, is_new_pm_format: bool):
     mac = MACS.get(device, "unknown_mac")
     mac_dir = os.path.join(os.getcwd(), 'export', mac)
     os.makedirs(mac_dir, exist_ok=True)
@@ -352,7 +354,7 @@ def download_history(device: str):
                     print(f"Error downloading {fname}:\n", stderr)
                 else:
                     print(f"Downloaded {fname} successfully.")
-                records = read_history_file(out_name)
+                records = read_history_file(out_name, is_new_pm_format)
                 export_records_to_csv(records, out_name + ".csv")
                 os.remove(out_name)
 
