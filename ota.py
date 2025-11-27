@@ -7,9 +7,10 @@ def check_firmware_update(mac: str, fw_version: str, recovery: bool = False, bet
             url = "https://ota2.atmotube.com/api/v1-public/ota?fw=2.0.0"
         else:
             url = "https://ota2.atmotube.com/api/v1-public/ota?fw=3.0.0"
+        params = {}
     else:
         url = "https://ota2.atmotube.com/api/v1-public/ota"
-    params = {"mac": mac.upper(), "fw": fw_version}
+        params = {"mac": mac.upper(), "fw": fw_version}
 
     try:
         response = requests.get(url, params=params, timeout=5)

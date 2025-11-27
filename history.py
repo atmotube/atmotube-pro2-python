@@ -241,6 +241,13 @@ def parse_history_record(data: bytes, is_new_pm_format: bool = False) -> dict:
     record["_total_length"] = offset
 
     record["aqs"] = calculate_aqs(co2=record.get("co2_ppm"), pm1=record.get("pm1_ug_m3"), pm25=record.get("pm25_ug_m3"), pm10=record.get("pm10_ug_m3"), voc_index=record.get("voc_index"), nox_index=record.get("nox_index"))
-    record["charging"] = "yes" if (record["error_flags"] & 0x4000) != 0 else "no"
+    charging = record["error_flags"] & 0x4000 != 0
+    recently_charged = record["error_flags"] & 0x8000 != 0
+    if charging:
+        record["charging"] = "yes"
+    elif recently_charged:
+        record["charging"] = "cd"  # cool down after charging
+    else:
+        record["charging"] = "no"
     record["motion"] = "yes" if (record["error_flags"] & 0x1000) != 0 else "no"
     return record
