@@ -35,7 +35,7 @@ cd atmotube-pro2-tool
 
 Install from source or use pre-built binaries:
 
-[https://github.com/vouch-opensource/mcumgr-client/](https://github.com/vouch-opensource/mcumgr-client/)
+[https://github.com/Gessler-GmbH/smp-rs/tree/main/smp-tool](https://github.com/Gessler-GmbH/smp-rs/tree/main/smp-tool)
 
 ---
 
