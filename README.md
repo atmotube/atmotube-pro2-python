@@ -17,7 +17,7 @@ A lightweight Python utility for communicating with and managing Atmotube PRO 2 
 ## Requirements
 
 - Python 3.12 or newer
-- `mcumgr` command-line tool
+- `mcumgr` command-line tool [https://github.com/apache/mynewt-mcumgr-cli](https://github.com/apache/mynewt-mcumgr-cli)
 - [Atmotube PRO 2 device](https://store.atmotube.com/products/atmotube-pro-2)
 
 ---
@@ -33,9 +33,15 @@ cd atmotube-pro2-tool
 
 ### 2. Install `mcumgr`
 
-Install from source or use pre-built binaries:
+Install `mcumgr` from [source](https://github.com/apache/mynewt-mcumgr-cli) or use pre-built binaries available in `mcumgr-binaries` folder.
 
-[https://github.com/apache/mynewt-mcumgr-cli](https://github.com/apache/mynewt-mcumgr-cli)
+- `mcumgr-binaries/macos-arm/mcumgr` - MacOS (Apple Silicon)
+- `mcumgr-binaries/windows/mcumgr.exe` - Windows (x64)
+
+You need to add `mcumgr` to your system PATH or place the binary in the same directory as this tool named as `mcumgr`.
+
+Pre-build binaries are compiled with baud rate `1000000`. You need to change it to 115200 for `mcumgr` compiled from source code.
+You can do this by editing the `BAUD_RATE` variable in `mcumgr_wrapper.py`.
 
 ---
 
