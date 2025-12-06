@@ -140,7 +140,7 @@ def parse_history_record(data: bytes, is_new_pm_format: bool = False) -> dict:
     ) = struct.unpack_from(core_fmt, data, offset)
     offset += struct.calcsize(core_fmt)
 
-    if temp == -1:
+    if temp == 0x7FFF:
         temp = None
 
     if hum == 0xFF:
