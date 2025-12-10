@@ -9,11 +9,11 @@ from csv_export import export_records_to_csv
 from device_config import print_device_config
 from history import read_history_file, parse_history_record, check_fw_new
 from mcumgr_wrapper import run_mcumgr_shell_command, run_mcumgr_download_command, \
-    run_mcumgr_image_list_command, run_mcumgr_image_upload_command, run_mcumgr_image_confirm_command, \
+    run_mcumgr_image_list_command, run_mcumgr_image_upload_command, run_mcumgr_image_command, \
     run_mcumgr_reset_command
 import serial.tools.list_ports
 
-from ota import check_firmware_update, download_file
+from ota import check_firmware_update, download_file, mcumgr_image_list_hash
 
 MACS = {}
 FWS = {}
@@ -83,16 +83,16 @@ def summarize_devices(devices):
 def parse_image_list(output: str) -> dict:
     lines = output.strip().splitlines()
     result = {}
-    current_version = None
+    current_flags = None
 
     for line in lines:
         line = line.strip()
-        if line.startswith("version:"):
-            current_version = line.split("version:")[1].strip()
-        elif line.startswith("hash:") and current_version:
+        if line.startswith("flags:"):
+            current_flags = line.split("flags:")[1].strip()
+        elif line.startswith("hash:") and current_flags:
             hash_val = line.split("hash:")[1].strip()
-            result[current_version] = hash_val
-            current_version = None  # reset for next entry
+            result[hash_val] = current_flags
+            current_flags = None  # reset for next entry
 
     return result
 
@@ -117,47 +117,86 @@ def run_tests(device_path):
     result = runner.run(suite)
     return result
 
-
-def update_device(device, fw_file: str, update_info: dict):
-    print(f"Uploading... (this may take 3 minutes)")
-    stdout, stderr = run_mcumgr_image_upload_command(device, fw_file)
+def get_images(device: str):
+    stdout, stderr = run_mcumgr_image_list_command(device)
     if stderr:
-        print("Error uploading firmware:\n", stderr)
+        print("Error listing images:\n", stderr)
+        return {}
     else:
-        print(f"Upload complete!")
-        stdout, stderr = run_mcumgr_image_list_command(device)
+        images = parse_image_list(stdout)
+        print(images)
+        return images
+
+
+def update_device(device, fw_file: str, update_info: dict, recovery: bool = False):
+    print(f"Uploading... (this may take 3 minutes)")
+    fw_hash = mcumgr_image_list_hash(fw_file)
+    print("Firmware hash:", fw_hash)
+    # check if fw_hash is already present
+    images = get_images(device)
+    if fw_hash in images:
+        print("Firmware already uploaded.")
+    else:
+        stdout, stderr = run_mcumgr_image_upload_command(device, fw_file)
         if stderr:
-            print("Error listing images:\n", stderr)
+            print("Error uploading firmware:\n", stderr)
+            return
         else:
-            images = parse_image_list(stdout)
-            print(images)
-            for version, hash_val in images.items():
-                if version.startswith(update_info['ver']):
-                    stdout, stderr = run_mcumgr_image_confirm_command(device, hash_val)
-                    if stderr:
-                        print(f"Error confirming image {version}:\n", stderr)
-                    else:
-                        print(f"Image {version} confirmed successfully.")
-                        # confirm new firmware
-                        check_firmware_update(MACS.get(device, ""), update_info['ver'])
-                    break
-            stdout, stderr = run_mcumgr_reset_command(device)
-            if stderr:
-                print("Error resetting device:\n", stderr)
+            print(f"Upload complete!")
+            if recovery:
+                run_mcumgr_reset_command(device)
+                print("Device RECOVERED!")
+                exit(0)
             else:
-                print("Device reset successfully. Firmware update complete.")
-                countdown(60)
-                UPDATE.pop(device)
-                print("Setting time...")
+                images = get_images(device)
+    print(images)
+    if fw_hash in images:
+        # mark image as test
+        stdout, stderr = run_mcumgr_image_command(device, fw_hash, "test")
+        if stderr:
+            print(f"Error testing image {fw_hash}:\n", stderr)
+            return
+        else:
+            print(f"Image {fw_hash} -> TEST")
+        stdout, stderr = run_mcumgr_reset_command(device)
+        if stderr:
+            print("Error resetting device:\n", stderr)
+            return
+        else:
+            print("Device reset successfully. Testing firmware...")
+            countdown(60)
+            print("Setting time...")
+            time_result = set_time(device)
+            count = 0
+            while not time_result:
+                time.sleep(1)
                 time_result = set_time(device)
-                count = 0
-                while not time_result:
-                    time.sleep(1)
-                    time_result = set_time(device)
-                    count += 1
-                    if count > 10:
-                        print("Failed to set time after multiple attempts.")
-                        break
+                if time_result:
+                    print("Time set successfully.")
+                    images = get_images(device)
+                    print(images)
+                    if fw_hash in images:
+                        flags = images[fw_hash]
+                        if flags != "active":
+                            print("Firmware not running after reboot.")
+                            return
+                        stdout, stderr = run_mcumgr_image_command(device, fw_hash, "confirm")
+                        if stderr:
+                            print(f"Error confirming image {fw_hash}:\n", stderr)
+                            return
+                        else:
+                            print(f"Image {fw_hash} -> CONFIRMED")
+                            # confirm new firmware
+                            UPDATE.pop(device)
+                            check_firmware_update(MACS.get(device, ""), update_info['ver'])
+                            return
+                    else:
+                        print("Firmware not running after reboot.")
+                        return
+                count += 1
+                if count > 10:
+                    print("Failed to set time after multiple attempts.")
+                    break
 
 
 def find_fw_bins(search_dir: str):
@@ -282,16 +321,22 @@ def interactive_command_menu(device: str):
                     print(f"Firmware downloaded to {fw_file}")
                     print(f"Running recovery mode on {device}...")
                     # reboot device into recovery mode
-                    stdout, stderr, raw = run_mcumgr_shell_command(device, "reboot")
+                    try:
+                        stdout, stderr, raw = run_mcumgr_shell_command(device, "reboot", timeout=0.1)
+                    except Exception:
+                        pass
                     print("Waiting for device to enter recovery mode...")
                     while True:
-                        stdout, stderr = run_mcumgr_image_list_command(device)
-                        if stdout:
-                            print("Device is in recovery mode.")
-                            images = parse_image_list(stdout)
-                            print(images)
-                            break
-                    update_device(device, fw_file, update_info)
+                        try:
+                            stdout, stderr = run_mcumgr_image_list_command(device, timeout=15)
+                            if stdout:
+                                print("Device is in recovery mode.")
+                                images = parse_image_list(stdout)
+                                break
+                        except Exception:
+                            print("Error communicating with device.")
+                            return
+                    update_device(device, fw_file, update_info, recovery=True)
         elif choice == "7":
             fw_file = get_local_fw_file()
             if fw_file:

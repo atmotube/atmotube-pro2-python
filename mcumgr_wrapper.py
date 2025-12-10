@@ -1,6 +1,6 @@
 import subprocess
 
-BAUD_RATE = 1000000  # Default baud rate for serial communication
+BAUD_RATE = 115200  # Default baud rate for serial communication
 
 
 def run_mcumgr_shell_command(device: str, cmd: str, args=None, timeout=4) -> tuple[str, str, str]:
@@ -91,12 +91,12 @@ def run_mcumgr_image_list_command(device: str, timeout=None) -> tuple[str, str]:
         return e.stdout or "", e.stderr or "Unknown error"
 
 
-def run_mcumgr_image_confirm_command(device: str, hash: str) -> tuple[str, str]:
+def run_mcumgr_image_command(device: str, hash: str, cmd_name: str) -> tuple[str, str]:
     conn_args = [
         "--conntype", "serial",
         "--connstring", f"dev={device},baud={BAUD_RATE}"
     ]
-    command = ["./mcumgr"] + conn_args + ["image", "confirm", hash]
+    command = ["./mcumgr"] + conn_args + ["image", cmd_name, hash]
     try:
         result = subprocess.run(command, capture_output=True, text=True, check=True)
         return result.stdout, ""

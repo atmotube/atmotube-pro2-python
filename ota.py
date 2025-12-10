@@ -1,5 +1,31 @@
 import requests
+import struct
 
+from pathlib import Path
+
+
+def mcumgr_image_list_hash(path: str) -> str:
+    data = Path(path).read_bytes()
+
+    hdr_size = struct.unpack_from("<H", data, 8)[0]
+    img_size = struct.unpack_from("<I", data, 12)[0]
+
+    tlv_offset = hdr_size + img_size
+    tlvs = data[tlv_offset:]
+
+    i = 0
+    while i + 4 <= len(tlvs):
+        tlv_type = tlvs[i]
+        tlv_len = struct.unpack("<H", tlvs[i+2:i+4])[0]
+        value = tlvs[i+4:i+4+tlv_len]
+
+        # 0x07 = signature TLV (where mcumgr gets its "hash")
+        if tlv_type == 0x07:
+            return value[4:36].hex()
+
+        i += 4 + tlv_len
+
+    raise ValueError("Signature TLV not found")
 
 def check_firmware_update(mac: str, fw_version: str, recovery: bool = False, beta: bool = False) -> dict | None:
     if recovery:
