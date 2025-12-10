@@ -89,7 +89,7 @@ def parse_image_list(output: str) -> dict:
         line = line.strip()
         if line.startswith("flags:"):
             current_flags = line.split("flags:")[1].strip()
-        elif line.startswith("hash:") and current_flags:
+        elif line.startswith("hash:") and current_flags is not None:
             hash_val = line.split("hash:")[1].strip()
             result[hash_val] = current_flags
             current_flags = None  # reset for next entry
