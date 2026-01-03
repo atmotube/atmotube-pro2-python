@@ -88,6 +88,10 @@ def read_history_file(path: str, is_new_pm_format: bool):
             offset += record["_total_length"]
         except Exception as e:
             print(f"Failed to parse record at offset {offset}: {e}")
+            # print hex dump of remaining data for debugging
+            remaining_data = raw[offset:]
+            hex_dump = ' '.join(f'{b:02X}' for b in remaining_data)
+            print(f"Hex: {hex_dump}")
             break
 
     return records
@@ -115,7 +119,7 @@ def decode_pm_value(raw: int) -> float:
 
 
 def parse_history_record(data: bytes, is_new_pm_format: bool = False) -> dict:
-    if len(data) < 18:
+    if len(data) < 17:
         raise ValueError("Data too short to contain required fields")
 
     record = {}
