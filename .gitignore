@@ -170,8 +170,6 @@ token.json
 .idea
 
 export
-mcumgr
 fw
-mcumgr.exe
 *.bin
 
