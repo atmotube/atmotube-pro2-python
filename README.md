@@ -33,10 +33,10 @@ cd atmotube-pro2-tool
 
 ### 2. Install `mcumgr`
 
-Install `mcumgr` from [source](https://github.com/apache/mynewt-mcumgr-cli) or use pre-built binaries available in `mcumgr-binaries` folder.
+Install `mcumgr` from [source](https://github.com/apache/mynewt-mcumgr-cli) or use pre-built binaries available in the `root` folder.
 
-- `mcumgr-binaries/macos-arm/mcumgr` - MacOS (Apple Silicon)
-- `mcumgr-binaries/windows/mcumgr.exe` - Windows (x64)
+- `mcumgr` - MacOS (Apple Silicon)
+- `mcumgr.exe` - Windows (x64)
 
 You need to add `mcumgr` to your system PATH or place the binary in the same directory as this tool named as `mcumgr`.
 
