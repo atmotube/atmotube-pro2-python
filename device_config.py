@@ -107,6 +107,33 @@ class Button:
         return f"Button Mode: {self.mode} | pm = {self.pm_mode}"
 
 
+class GNSSState(IntEnum):
+    OFF = 0
+    ON = 1
+
+    def __str__(self):
+        return self.name.replace('_', ' ').title().lower()
+
+
+class GNSSMode(IntEnum):
+    ALWAYS_OFF = 0
+    TIMER = 1
+    ALWAYS_ON = 2
+
+    def __str__(self):
+        return self.name.replace('_', ' ').title().lower()
+
+
+class GNSSStatus:
+    def __init__(self, state: GNSSState, gnss_mode: GNSSMode, timer: int):
+        self.state = state
+        self.gnss_mode = gnss_mode
+        self.timer = timer
+
+    def __str__(self):
+        return f"GNSS: state = {self.state} | mode = {self.gnss_mode} | timer = {self.timer}"
+
+
 def get_pm_status(device: str) -> PmStatus | None:
     pm_status_str, stderr, raw = run_mcumgr_shell_command(device, "pm status")
     if stderr:
@@ -193,6 +220,24 @@ def get_button_mode(device: str) -> Button | None:
         return None
 
 
+def get_gps_status(device: str) -> GNSSStatus | None:
+    gnss_status_raw, stderr, raw = run_mcumgr_shell_command(device, "gnss status")
+    if stderr:
+        return None
+    try:
+        parts = gnss_status_raw.strip().split(" ")
+        state = GNSSState(int(parts[0]))
+        mode = GNSSMode(int(parts[1]))
+        timer = int(parts[2])
+
+        gnss_status = GNSSStatus(state, mode, timer)
+        return gnss_status
+
+    except:
+        print("Failed to parse gnss status output:", gnss_status_raw)
+        return None
+
+
 def print_device_config(device):
     print("=" * 60)
     print(get_pm_status(device))
@@ -201,4 +246,5 @@ def print_device_config(device):
     print(get_interval(device))
     print(get_calibration(device))
     print(get_button_mode(device))
+    print(get_gps_status(device))
     print("=" * 60)

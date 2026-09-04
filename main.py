@@ -384,24 +384,37 @@ def download_history(device: str, is_new_pm_format: bool):
         print("Error:\n", stderr)
     else:
         if files:
+            start_total = time.time()
+            total_size = 0
             for file in files.split(";"):
                 if not file.strip():
                     continue
                 file_data = file.split(",")
                 fname = file_data[0].strip()
-                fsize = file_data[1].strip()
+                fsize = int(file_data[1].strip())
+                total_size += fsize
                 print(f"File: {fname}, Size: {fsize} bytes")
                 fname_parts = fname.split('/')
                 # Download the file
                 out_name = os.path.join(mac_dir, mac + '_' + fname_parts[-2] + "_" + fname_parts[-1])
+                start_time = time.time()
                 stdout, stderr = run_mcumgr_download_command(device, fname, out_name)
+                end_time = time.time()
+                duration = end_time - start_time
                 if stderr:
                     print(f"Error downloading {fname}:\n", stderr)
                 else:
-                    print(f"Downloaded {fname} successfully.")
-                records = read_history_file(out_name, is_new_pm_format)
-                export_records_to_csv(records, out_name + ".csv")
-                os.remove(out_name)
+                    speed = (fsize / 1024) / duration if duration > 0 else 0
+                    print(f"Downloaded {fname} in {duration:.2f}s ({speed:.2f} KB/s)")
+                    records = read_history_file(out_name, is_new_pm_format)
+                    export_records_to_csv(records, out_name + ".csv")
+                    os.remove(out_name)
+            
+            end_total = time.time()
+            total_duration = end_total - start_total
+            total_kb = total_size / 1024
+            total_speed = total_kb / total_duration if total_duration > 0 else 0
+            print(f"Total downloaded: {total_kb:.2f} KB in {total_duration:.2f}s ({total_speed:.2f} KB/s)")
 
 
 def set_time(device):

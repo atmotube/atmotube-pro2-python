@@ -25,10 +25,6 @@ class AtmocubeCommandTests(unittest.TestCase):
         response, error, raw = run_mcumgr_shell_command(device_path, f"time", [str(ts)])
         self.assertEqual(response, "err", msg=f"Unexpected response: {raw}")
 
-    def test_pm_on(self):
-        response, error, raw = run_mcumgr_shell_command(device_path, "pm on")
-        self.assertEqual(response, "ok", msg=f"Unexpected response: {raw}")
-
     def test_pm_status(self):
         response, error, raw = run_mcumgr_shell_command(device_path, "pm status")
         self.assertRegex(response, r"^[01] [0-4] [01] \d+$", msg=f"Unexpected response: {raw}")

@@ -3,6 +3,8 @@ from datetime import datetime
 
 from aqs import calculate_aqs
 
+OUTPUT_ERRORS = False
+
 FIELDS_MAPPING = {
     "timestamp": "Date (UTC+00:00)",
     "aqs": "AQS",
@@ -40,6 +42,30 @@ FIELDS_MAPPING = {
     "charging": "Charging",
     "motion": "Motion"
 }
+
+if OUTPUT_ERRORS:
+    FIELDS_MAPPING["error_flags"] = "Errors"
+
+
+def parse_error_descriptions(flags: int) -> str:
+    error_descriptions = {
+        1: "PM laser current out of range",
+        2: "PM fan blocked or broken",
+        3: "CO2",
+        4: "VOC & NOx sensor",
+        5: "Pressure sensor",
+        6: "Accelerometer",
+        7: "Charger",
+        8: "Flash storage",
+        9: "GPS",
+        10: "External module",
+    }
+
+    return ", ".join(
+        description
+        for bit, description in error_descriptions.items()
+        if flags & (1 << bit)
+    )
 
 
 def check_fw_new(demanded: tuple[int, int, int], fw: str | None) -> bool:
@@ -254,4 +280,6 @@ def parse_history_record(data: bytes, is_new_pm_format: bool = False) -> dict:
     else:
         record["charging"] = "no"
     record["motion"] = "yes" if (record["error_flags"] & 0x1000) != 0 else "no"
+    if OUTPUT_ERRORS:
+        record["error_flags"] = parse_error_descriptions(record["error_flags"])
     return record
